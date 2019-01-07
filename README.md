@@ -25,5 +25,8 @@ npm run test
 npm run lint
 ```
 
+### live demo 
+[https://kscript.github.io/css-sprite-generator/demo/index.htm](https://kscript.github.io/css-sprite-generator/demo/index.html)
+
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
