@@ -26,7 +26,7 @@ npm run lint
 ```
 
 ### Live demo 
-[https://kscript.github.io/css-sprite-generator/demo/index.htm](https://kscript.github.io/css-sprite-generator/demo/index.html)
+在线demo: [view](https://kscript.github.io/css-sprite-generator/docs/index.html)
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
