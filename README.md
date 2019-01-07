@@ -25,7 +25,7 @@ npm run test
 npm run lint
 ```
 
-### live demo 
+### Live demo 
 [https://kscript.github.io/css-sprite-generator/demo/index.htm](https://kscript.github.io/css-sprite-generator/demo/index.html)
 
 ### Customize configuration
