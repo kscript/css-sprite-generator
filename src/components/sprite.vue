@@ -45,7 +45,7 @@
                 ref="file"
                 @change="fileChange"
               >
-              <a class="hidden" :href="base64Url" download="sprite.png" ref="download"></a>
+              <a class="hidden" :href="blobUrl" download="sprite.png" ref="download"></a>
             </el-form-item>
             <el-form-item>
               <el-button @click="clear" type="danger" size="mini">{{i18n('clear')}}</el-button>
@@ -54,7 +54,7 @@
               <el-button @click="save" type="success" size="mini">{{i18n('save')}}</el-button>
             </el-form-item>
             <el-form-item>
-              <el-button @click="build" type="warning" size="mini">{{i18n('build')}}</el-button>
+              <el-button @click="build" type="success" size="mini">{{i18n('build')}}</el-button>
             </el-form-item>
             <el-form-item>
               <el-button @click="preview" type="warning" size="mini">{{i18n('preview')}}</el-button>
@@ -63,7 +63,7 @@
         </el-collapse-item>
         <el-collapse-item :title="i18n('operatingSpace')" name="handler">
           <el-row type="flex">
-            <el-col :span="8">
+            <!-- <el-col :span="8">
               <div class="table-box scoll">
                 <el-table
                   border
@@ -78,8 +78,6 @@
                       <img :src="scope.row.data" alt="scope.name">
                     </template>
                   </el-table-column>
-                  <!-- <el-table-column prop="name" :label="i18n('fileName')">
-                  </el-table-column>-->
                   <el-table-column :label="i18n('handler')">
                     <template slot-scope="scope">
                       <span class="handler-icon">
@@ -91,17 +89,23 @@
                   </el-table-column>
                 </el-table>
               </div>
-            </el-col>
-            <el-col :span="16">
-              <div class="canvas-box">
+            </el-col> -->
+            <el-col :span="24">
+              <div class="canvas-box"
+                :class="{'draging': drag}"
+                :style="'padding: ' + boxPadding + 'px'"
+                @mousedown="onmousedown"
+                @mousemove="onmousemove"
+                @mouseup="onmouseup"
+                @mouseleave="mouseleave"
+                v-show="files.length"
+              >
                 <canvas
-                  ref="canvas"
-                  :width="cxtWidth +'px'"
-                  :height="cxtHeight + 'px'"
-                  @mousedown="onmousedown"
-                  @mousemove="onmousemove"
-                  @mouseup="onmouseup"
-                ></canvas>
+                ref="canvas"
+                :width="cxtWidth +'px'"
+                :height="cxtHeight + 'px'"
+                >
+                </canvas>
               </div>
             </el-col>
           </el-row>
@@ -135,14 +139,14 @@
 
 <script>
 export default {
-  name: "sprite",
-  data() {
+  name: 'sprite',
+  data () {
     return {
-      activeNames: ["language", "setting", "handler"],
-      style: "",
+      activeNames: ['language', 'setting', 'handler'],
+      style: '',
       styleEl: null,
-      base64Url: "",
-      className: "cs-icon",
+      blobUrl: '',
+      className: 'cs-icon',
       isPreview: false,
       width: 32,
       height: 32,
@@ -151,107 +155,146 @@ export default {
       cxt: null,
       files: [],
       drag: false,
+      isSave: false,
       offsetX: 0,
       offsetY: 0,
       selecteIndex: 0,
       imgBuffer: null,
+      notice: {
+        state: 0,
+        build: {
+          type: 'success',
+          title: '环境创建成功!',
+          message: '请在 操作区 对图片进行调整',
+          duration: 3000
+        },
+        guide: {
+          title: '操作指南',
+          dangerouslyUseHTMLString: true,
+          message: '<ol style="list-style: disc;"><li>交换图片位置: <br />  选择图片并拖动到其它图片位置上</li><li>删除图片: <br />  选择图片并拖动到浅蓝色边框区域</li></ol>',
+          duration: 0
+        }
+      },
       lang: {
-        active: "zh",
+        active: 'zh',
         en: {
-          language: "语言 Language",
-          zh: "中文"
+          language: '语言 Language',
+          zh: '中文'
         },
         zh: {
-          language: "语言 Language",
-          zh: "中文",
-          height: "高度",
-          width: "宽度",
-          fileName: "文件名",
-          selectFile: "选择文件",
-          setting: "设置区",
-          operatingSpace: "操作区",
-          handler: "操作",
-          padding: "间距",
-          num: "每排个数",
-          build: "生成",
-          clear: "清空",
-          save: "保存",
-          preview: "预览",
-          picture: "图片",
-          empty: "暂无数据",
-          cssGenerator: "生成CSS"
+          language: '语言 Language',
+          zh: '中文',
+          height: '高度',
+          width: '宽度',
+          fileName: '文件名',
+          selectFile: '选择文件',
+          setting: '设置区',
+          operatingSpace: '操作区',
+          handler: '操作',
+          padding: '间距',
+          num: '每排个数',
+          build: '生成',
+          clear: '清空',
+          save: '保存',
+          preview: '预览',
+          picture: '图片',
+          empty: '暂无数据',
+          cssGenerator: '生成CSS'
         }
       }
-    };
+    }
   },
   computed: {
-    local() {
-      return this.lang[this.lang.active] || {};
+    local () {
+      return this.lang[this.lang.active] || {}
     },
-    cxtWidth() {
-      return (this.width + this.padding * 2) * this.num;
+    boxPadding () {
+      return this.width + 3
     },
-    cxtHeight() {
-      return (
-        (this.height + this.padding * 2) *
-        Math.ceil(this.files.length / this.num)
-      );
+    cxtWidth () {
+      return (this.width + this.padding * 2) * this.num
+    },
+    cxtHeight () {
+      return (this.height + this.padding * 2) * Math.ceil(this.files.length / this.num)
     }
   },
   methods: {
-    selectLanguage(type) {
-      this.lang.active = type;
+    selectLanguage (type) {
+      this.lang.active = type
     },
-    i18n(key) {
-      return this.local[key] || key;
+    i18n (key) {
+      return this.local[key] || key
     },
-    getIndex($event) {
-      let x = ~~($event.offsetX / (this.width + this.padding * 2));
-      let y = ~~($event.offsetY / (this.height + this.padding * 2));
-      return x + this.num * y;
+    getIndex ($event) {
+      let padding = 0
+      let x = ~~(($event.offsetX - padding) / (this.width + this.padding * 2))
+      let y = ~~(($event.offsetY - padding) / (this.height + this.padding * 2))
+      return x + this.num * y
     },
-    onmousedown($event) {
-      this.drag = true;
-      this.offsetX = $event.offsetX % (this.width + this.padding * 2);
-      this.offsetY = $event.offsetY % (this.height + this.padding * 2);
-      this.selecteIndex = this.getIndex($event);
+    onmousedown ($event) {
+      if (/canvas/i.test($event.target.tagName)) {
+        this.drag = true
+        this.offsetX = ($event.offsetX) % (this.width + this.padding * 2)
+        this.offsetY = ($event.offsetY) % (this.height + this.padding * 2)
+        this.selecteIndex = this.getIndex($event)
+      }
     },
-    onmousemove($event) {
+    mouseleave ($event) {
       if (this.drag) {
+        this.onmouseup($event)
+      }
+    },
+    onmousemove ($event) {
+      if (this.drag) {
+        let inner = /canvas/i.test($event.target.tagName)
+        let padding = inner ? 0 : this.boxPadding
         this.build({
           index: this.selecteIndex,
-          x: $event.offsetX - this.offsetX,
-          y: $event.offsetY - this.offsetY
-        });
+          x: $event.offsetX - this.offsetX - padding,
+          y: $event.offsetY - this.offsetY - padding
+        })
       }
     },
-    onmouseup($event) {
+    onmouseup ($event) {
       if (this.drag) {
-        let index = this.getIndex($event);
-        this.drag = false;
-        if (this.selecteIndex !== index) {
-          this.exchange(this.files, this.selecteIndex, index);
+        let inner = /canvas/i.test($event.target.tagName)
+        let index = this.getIndex($event)
+        this.drag = false
+        this.isSave = false
+        if (inner) {
+          if (this.selecteIndex !== index) {
+            this.exchange(this.files, this.selecteIndex, index)
+          }
+        } else {
+          this.files.splice(this.selecteIndex, 1)
         }
-        this.build();
-        this.createStyle();
+        this.refresh()
       }
     },
-    readfile(file) {
+    readfile (file) {
       return new Promise((resolve, reject) => {
-        let reader = new FileReader();
-        reader.onload = function() {
-          resolve(reader.result);
-        };
-        reader.onerror = function(e) {
-          reject(e);
-        };
-        reader.readAsDataURL(file);
-      });
+        let reader = new FileReader()
+        reader.onload = function () {
+          resolve(reader.result)
+        }
+        reader.onerror = function (e) {
+          reject(e)
+        }
+        reader.readAsDataURL(file)
+      })
     },
-    fileChange() {
-      let fileEl = this.$refs.file;
-      let files = [];
-      let count = fileEl.length;
+    fileChange () {
+      let fileEl = this.$refs.file
+      let files = []
+      let count = fileEl.files.length
+      if (this.notice.state === 0 && count) {
+        this.notice.state = 5
+        this.$notify.closeAll()
+        this.$notify(this.notice.build)
+        this.$nextTick(() => {
+          this.$notify(this.notice.guide)
+        })
+      }
       for (let item of fileEl.files) {
         this.readfile(item).then(data => {
           files.push({
@@ -259,35 +302,27 @@ export default {
             img: null,
             data: data,
             name: item.name
-          });
-          count--;
+          })
+          count--
           if (!count) {
-            this.files = files;
-            this.build();
-            this.createStyle();
+            this.files = files
+            this.refresh()
           }
-        });
+        })
       }
     },
-    selectFile() {
-      this.$refs.file.click();
+    selectFile () {
+      this.$refs.file.click()
     },
-    fileHandler(type, scope) {
-      if (type === "up") {
-        scope.$index > 0 &&
-          this.exchange(this.files, scope.$index, scope.$index - 1);
-      } else if (type === "down") {
-        scope.$index < this.files.length - 1 &&
-          this.exchange(this.files, scope.$index, scope.$index + 1);
-      } else if (type === "close") {
-        this.files.splice(scope.$index, 1);
+    fileHandler (type, scope) {
+      if (type === 'close') {
+        this.removeItem(scope.$index)
+      } else {
+        this.exchange(this.files, scope.$index, scope.$index + (type === 'up' ? -1 : 1))
       }
-      this.$nextTick(() => {
-        this.build();
-        this.createStyle();
-      });
+      this.refresh()
     },
-    exchange(ary, indexA, indexB) {
+    exchange (ary, indexA, indexB) {
       if (Array.isArray(ary)) {
         if (
           indexA >= 0 &&
@@ -295,113 +330,123 @@ export default {
           indexB >= 0 &&
           indexB < ary.length
         ) {
-          ary.splice(indexA, 1, ary.splice(indexB, 1, ary[indexA])[0]);
+          ary.splice(indexA, 1, ary.splice(indexB, 1, ary[indexA])[0])
         }
       }
     },
-    loadImg(item) {
+    removeItem (index) {
+      this.files.splice(index, 1)
+    },
+    loadImg (item) {
       return new Promise(resolve => {
         if (item.img) {
-          resolve(item);
+          resolve(item)
         } else {
-          let img = new Image();
+          let img = new Image()
           img.onload = () => {
-            item.img = img;
-            resolve(item);
-          };
-          img.src = item.data;
+            item.img = img
+            resolve(item)
+          }
+          img.src = item.data
         }
-      });
+      })
     },
-    build(selected) {
-      let current;
-      let count = 0;
-      let cxt = this.cxt;
-      cxt.clearRect(0, 0, this.cxtWidth, this.cxtHeight);
+    refresh () {
+      this.$nextTick(() => {
+        this.build()
+        this.createStyle()
+      })
+    },
+    build (selected) {
+      let current
+      let count = 0
+      let cxt = this.cxt
+      cxt.clearRect(0, 0, this.cxtWidth, this.cxtHeight)
       this.files.forEach((item, index) => {
         this.loadImg(item).then(item => {
           if (selected && index === selected.index) {
-            current = item;
+            current = item
           } else {
-            let x =
-              (index % this.num) * (this.width + this.padding * 2) +
-              this.padding;
-            let y =
-              ~~(index / this.num) * (this.height + this.padding * 2) +
-              this.padding;
-            this.drawImage(cxt, item, x, y);
+            this.drawImage(
+              cxt,
+              item,
+              (index % this.num) * (this.width + this.padding * 2) + this.padding,
+              ~~(index / this.num) * (this.height + this.padding * 2) + this.padding
+            )
           }
-          count++;
+          count++
           if (count === this.files.length) {
-            current && this.drawImage(cxt, current, selected.x, selected.y);
+            current && this.drawImage(cxt, current, selected.x, selected.y)
           }
-        });
-      });
+        })
+      })
     },
-    drawImage(cxt, item, x, y) {
-      cxt.drawImage(item.img, x, y, this.width, this.height);
+    drawImage (cxt, item, x, y) {
+      cxt.drawImage(item.img, x, y, this.width, this.height)
     },
-    createStyle() {
+    createStyle () {
+      /* eslint-disable */
       let styles = this.files.map((item, index) => {
-        let x = (index % this.num) * (this.width + this.padding * 2);
-        let y = ~~(index / this.num) * (this.height + this.padding * 2);
-        return `
-    .${this.className || "cs-icon"}s.${this.className || "cs-icon"}-${index}{
-      background-position: ${x ? -x : x}px ${y ? -y : y}px;
-    }`;
-    })
-      this.style = [`
-    .${this.className || "cs-icon"}s{
-      background-image: url(${this.blobUrl || ""});
-      background-repeat: no-repeat;
-      padding: ${this.padding | 0}px;
-      display: inline-block;
-      float: left;
-      border-right: 1px solid #eee;
-      border-bottom: 1px solid #eee;
-      margin-right: -1px;
-      margin-bottom: -1px;
-    }`].concat(styles).join("");
+      let x = (index % this.num) * (this.width + this.padding * 2)
+      let y = ~~(index / this.num) * (this.height + this.padding * 2)
+      return (
+        `.${this.className || 'cs-icons'}s.${this.className || 'cs-icon'}-${index}{
+          background-position: ${x ? -x : x}px ${y ? -y : y}px;
+        }
+        `)
+      })
+      this.style = [
+        `.${this.className || 'cs-icons'}s{
+          background-image: url(${this.blobUrl || ''});
+          background-repeat: no-repeat;
+          padding: ${this.padding | 0}px;
+          display: inline-block;
+          float: left;
+          border-right: 1px solid #eee;
+          border-bottom: 1px solid #eee;
+          margin-right: -1px;
+          margin-bottom: -1px;
+        }
+        `
+      ].concat(styles).join('').replace(/\s{9}/g, '\n')
+    /* esint-enable */
     },
-    clear() {
-      this.style = "";
-      this.files.splice(0);
+    clear () {
+      this.style = ''
+      this.files.splice(0)
     },
-    preview() {
+    preview () {
       if (this.files.length) {
-        this.isPreview = true;
+        this.isPreview = true
         this.$refs.canvas.toBlob(blob => {
-          this.blobUrl = URL.createObjectURL(blob);
-          this.createStyle();
+          this.blobUrl = URL.createObjectURL(blob)
+          this.createStyle()
           if (!this.styleEl) {
-            this.styleEl = document.createElement("style");
-            this.styleEl.innerHTML = this.style;
-            this.$refs.preview.appendChild(this.styleEl);
+            this.styleEl = document.createElement('style')
+            this.styleEl.innerHTML = this.style
+            this.$refs.preview.appendChild(this.styleEl)
           } else {
-            this.styleEl.innerHTML = this.style;
+            this.styleEl.innerHTML = this.style
           }
-          if (this.activeNames.indexOf("preview") < 0) {
-            this.activeNames.push("preview");
+          if (this.activeNames.indexOf('preview') < 0) {
+            this.activeNames.push('preview')
           }
-        });
+        })
       }
     },
-    save() {
-      if (!this.files.length) return;
-      this.base64Url = this.$refs.canvas.toDataURL("image/png");
+    save () {
+      if (!this.files.length) return
+      this.blobUrl = this.$refs.canvas.toDataURL('image/png')
       setTimeout(() => {
-        this.$refs.download.click();
-      });
+        this.$refs.download.click()
+      })
     }
   },
-  mounted() {
-    // window.vm = this;
-    this.cxt = this.$refs.canvas.getContext("2d");
+  mounted () {
+    this.cxt = this.$refs.canvas.getContext('2d')
   }
-};
+}
 </script>
-
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="scss" scoped>
 .css-sprite {
   .hidden {
@@ -443,9 +488,15 @@ export default {
         max-width: 32px;
       }
     }
-    .canvas-box {
-      padding: 0 10px;
-      canvas {
+    .canvas-box{
+      padding: 10px;
+      background: #ecf5ff;
+      display: inline-block;
+      border: 1px solid #dbe5f1;
+      &.draging{
+        cursor: move;
+      }
+      canvas{
         background: #333;
       }
     }
@@ -453,30 +504,21 @@ export default {
       padding: 0 10px;
       textarea {
         padding: 5px;
-        width: 100%;
-        height: 120px;
+        width: 100%!important;
+        min-height: 160px;
         border: 1px solid #ddd;
         outline: none;
-        resize: none;
       }
     }
     .preview {
       .bg {
+        background-color: #fff;
         border: 1px solid #eee;
         overflow: hidden;
+        div{
+          box-sizing: content-box;
+        }
       }
-      // .cs-icons{
-      //   display: inline-block;
-      //   float: left;
-      //   border-right: 1px solid #eee;
-      //   border-bottom: 1px solid #eee;
-      //   margin-right: -1px;
-      //   margin-bottom: -1px;
-      //   &:hover{
-      //     cursor: pointer;
-      //     background-color: #ddd;
-      //   }
-      // }
     }
   }
 }
