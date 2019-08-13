@@ -19,19 +19,19 @@
         <el-collapse-item :title="i18n('setting')" name="setting">
           <el-form :inline="true">
             <el-form-item :label="i18n('width')">
-              <el-input v-model.number="width" size="mini" style="width: 60px;"></el-input>
+              <el-input v-model.number="width" size="mini" style="width: 60px;" @change="inputChange"></el-input>
             </el-form-item>
             <el-form-item :label="i18n('height')">
-              <el-input v-model.number="height" size="mini" style="width: 60px;"></el-input>
+              <el-input v-model.number="height" size="mini" style="width: 60px;" @change="inputChange"></el-input>
             </el-form-item>
             <el-form-item :label="i18n('padding')">
-              <el-input v-model.number="padding" size="mini" style="width: 60px;"></el-input>
+              <el-input v-model.number="padding" size="mini" style="width: 60px;" @change="inputChange"></el-input>
             </el-form-item>
             <el-form-item :label="i18n('num')">
-              <el-input v-model.number="num" size="mini" style="width: 60px;"></el-input>
+              <el-input v-model.number="num" size="mini" style="width: 60px;" @change="inputChange"></el-input>
             </el-form-item>
             <el-form-item :label="i18n('className')">
-              <el-input v-model="className" size="mini" style="width: 100px;"></el-input>
+              <el-input v-model.lazy="className" size="mini" style="width: 100px;"></el-input>
             </el-form-item>
           </el-form>
           <el-form :inline="true">
@@ -150,6 +150,8 @@ export default {
       isPreview: false,
       width: 32,
       height: 32,
+      cxtWidth: 32,
+      cxtHeight: 32,
       padding: 1,
       num: 15,
       cxt: null,
@@ -209,16 +211,20 @@ export default {
       return this.lang[this.lang.active] || {}
     },
     boxPadding () {
+      return 32
       return this.width + 3
     },
-    cxtWidth () {
-      return (this.width + this.padding * 2) * this.num
-    },
-    cxtHeight () {
-      return (this.height + this.padding * 2) * Math.ceil(this.files.length / this.num)
-    }
+    // cxtWidth () {
+    //   return (this.width + this.padding * 2) * this.num
+    // },
+    // cxtHeight () {
+    //   return (this.height + this.padding * 2) * Math.ceil(this.files.length / this.num)
+    // }
   },
   methods: {
+    inputChange(){
+      this.refresh()
+    },
     selectLanguage (type) {
       this.lang.active = type
     },
@@ -361,6 +367,8 @@ export default {
       let current
       let count = 0
       let cxt = this.cxt
+      this.cxtWidth = (this.width + this.padding * 2) * this.num
+      this.cxtHeight = (this.height + this.padding * 2) * Math.ceil(this.files.length / this.num)
       cxt.clearRect(0, 0, this.cxtWidth, this.cxtHeight)
       this.files.forEach((item, index) => {
         this.loadImg(item).then(item => {
@@ -382,7 +390,24 @@ export default {
       })
     },
     drawImage (cxt, item, x, y) {
-      cxt.drawImage(item.img, x, y, this.width, this.height)
+      let offsetX, offsetY
+      let { width, height } = item.img
+      let w = width, h = height
+      let scale = width > height ? height / width : width / height
+      let scale2 = this.width > this.height ? this.height / this.width : this.width / this.height
+      if (width >= this.width && height >= this.height) {
+        w = this.width * scale
+        h = this.height * scale
+      } else if (width > this.width) {
+        h = this.width * scale
+      } else if(height > this.height){
+        w = this.width * scale
+      }
+      // w *= scale2;
+      // h *= scale2;
+      offsetX = (this.width - w) / 2
+      offsetY = (this.height - h) / 2
+      cxt.drawImage(item.img, x + offsetX, y + offsetY, w, h)
     },
     createStyle () {
       /* eslint-disable */
@@ -443,6 +468,7 @@ export default {
     }
   },
   mounted () {
+    console.log(this)
     this.cxt = this.$refs.canvas.getContext('2d')
   }
 }
