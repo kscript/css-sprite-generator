@@ -33,6 +33,12 @@
             <el-form-item :label="i18n('className')">
               <el-input v-model.lazy="className" size="mini" style="width: 100px;"></el-input>
             </el-form-item>
+            <el-form-item :label="i18n('classNameMode')">
+              <el-radio-group v-model="classNameMode" size="mini" @change="preview(false)">
+                <el-radio-button label="name">{{i18n('fileName')}}</el-radio-button>
+                <el-radio-button label="index">{{i18n('arrayIndex')}}</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
           </el-form>
           <el-form :inline="true">
             <el-form-item>
@@ -125,7 +131,7 @@
             <div class="bg">
               <div
                 v-for="(vo, index) in files"
-                :class="className + 's ' + className + '-' + index"
+                :class="className + 's ' + className + '-' + ({name: vo.name, index}[classNameMode])"
                 :style="'width: ' + width + 'px; height: ' + height + 'px;'"
                 :key="index"
               ></div>
@@ -147,6 +153,7 @@ export default {
       styleEl: null,
       blobUrl: '',
       className: 'cs-icon',
+      classNameMode: 'name',
       isPreview: false,
       width: 32,
       height: 32,
@@ -201,7 +208,9 @@ export default {
           preview: '预览',
           picture: '图片',
           empty: '暂无数据',
-          cssGenerator: '生成CSS'
+          cssGenerator: '生成CSS',
+          classNameMode: 'class名称模式',
+          arrayIndex: '数组索引'
         }
       }
     }
@@ -212,7 +221,7 @@ export default {
     },
     boxPadding () {
       return 32
-      return this.width + 3
+      // return this.width + 3
     },
     // cxtWidth () {
     //   return (this.width + this.padding * 2) * this.num
@@ -303,11 +312,12 @@ export default {
       }
       for (let item of fileEl.files) {
         this.readfile(item).then(data => {
+          const name = typeof item.name !== 'string' || item.name[0] === '.' ? '__empty__' : item.name.split('.').slice(0, -1).join('.')
           files.push({
             file: item,
             img: null,
             data: data,
-            name: item.name
+            name
           })
           count--
           if (!count) {
@@ -394,7 +404,7 @@ export default {
       let { width, height } = item.img
       let w = width, h = height
       let scale = width > height ? height / width : width / height
-      let scale2 = this.width > this.height ? this.height / this.width : this.width / this.height
+      // let scale2 = this.width > this.height ? this.height / this.width : this.width / this.height
       if (width >= this.width && height >= this.height) {
         w = this.width * scale
         h = this.height * scale
@@ -412,12 +422,16 @@ export default {
     createStyle () {
       /* eslint-disable */
       let styles = this.files.map((item, index) => {
-      let x = (index % this.num) * (this.width + this.padding * 2)
-      let y = ~~(index / this.num) * (this.height + this.padding * 2)
-      return (
-        `.${this.className || 'cs-icons'}s.${this.className || 'cs-icon'}-${index}{
-          background-position: ${x ? -x : x}px ${y ? -y : y}px;
+        let x = (index % this.num) * (this.width + this.padding * 2)
+        let y = ~~(index / this.num) * (this.height + this.padding * 2)
+        const data = {
+          name: item.name,
+          index
         }
+        return (
+          `.${this.className || 'cs-icons'}s.${this.className || 'cs-icon'}-${data[this.classNameMode]}{
+            background-position: ${x ? -x : x}px ${y ? -y : y}px;
+          }
         `)
       })
       this.style = [
@@ -434,24 +448,28 @@ export default {
         }
         `
       ].concat(styles).join('').replace(/\s{9}/g, '\n')
-    /* esint-enable */
+      /* esint-enable */
     },
     clear () {
       this.style = ''
       this.files.splice(0)
     },
-    preview () {
+    preview (changePreviewState = true) {
       if (this.files.length) {
-        this.isPreview = true
+        if (changePreviewState) {
+          this.isPreview = true
+        }
         this.$refs.canvas.toBlob(blob => {
           this.blobUrl = URL.createObjectURL(blob)
           this.createStyle()
-          if (!this.styleEl) {
-            this.styleEl = document.createElement('style')
-            this.styleEl.innerHTML = this.style
-            this.$refs.preview.appendChild(this.styleEl)
-          } else {
-            this.styleEl.innerHTML = this.style
+          if (this.$refs.preview) {
+            if (!this.styleEl) {
+              this.styleEl = document.createElement('style')
+              this.styleEl.innerHTML = this.style
+              this.$refs.preview.appendChild(this.styleEl)
+            } else {
+              this.styleEl.innerHTML = this.style
+            }
           }
           if (this.activeNames.indexOf('preview') < 0) {
             this.activeNames.push('preview')
