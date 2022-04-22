@@ -1,0 +1,38 @@
+name: qweib-pc
+
+on:
+  merge:
+    branches:
+      - release
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Install Node.js, NPM
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14
+
+      - name: Check out branch
+        uses: actions/checkout@v2
+        with:
+          ref: master
+
+      - name: Install
+        run: |
+          npm install
+
+      - name: Build
+        run: |
+          npm run build
+        env: 
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+
+      - name: Deploy
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: docs
